@@ -8,22 +8,22 @@ const port = process.env.PORT || 3000;
 
 // Configurar middlewares
 app.use(cors({
-    origin: ['http://localhost:5173', 'https://desahogo-web.web.app'], // Allow local frontend and production frontend
+    origin: ['http://localhost:5173', 'https://desahogo-web.web.app'],
     methods: ['GET', 'POST', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json());
 
-// Inicializar configuración de Mercado Pago
+// Inicializar configuración de Mercado Pago (CON LA VARIABLE CORRECTA DE RENDER)
 const client = new MercadoPagoConfig({
-    accessToken: process.env.MP_ACCESS_TOKEN || "TEST-TU-ACCESS-TOKEN",
-    options: { timeout: 5000, idempotencyKey: "abc" }
+    accessToken: process.env.ACCESS_TOKEN, 
+    options: { timeout: 5000 }
 });
 
 // Endpoint para crear preferencia de pago
 app.post("/create_preference", async (req, res) => {
     try {
-        const { title, price, profileId } = req.body;
+        const { title, price, profileId, email } = req.body;
 
         if (!title || !price) {
             return res.status(400).json({ error: "Faltan datos obligatorios: title o price" });
@@ -39,6 +39,10 @@ app.post("/create_preference", async (req, res) => {
                     currency_id: "ARS",
                 },
             ],
+            payer: {
+                // Incorporamos obligatoriamente el payer para evitar el rechazo por políticas de fraude (403)
+                email: email || "usuario_generico@desahogo.com",
+            },
             back_urls: {
                 success: "https://desahogo-web.web.app/mensajes?status=success",
                 failure: "https://desahogo-web.web.app/mensajes?status=failure",
@@ -54,7 +58,7 @@ app.post("/create_preference", async (req, res) => {
         res.json({ id: result.id });
     } catch (error) {
         console.error("Error al crear preferencia:", error);
-        res.status(500).json({ error: "Error al crear la preferencia de pago de Mercado Pago" });
+        res.status(500).json({ error: "Error al crear la preferencia" });
     }
 });
 
@@ -63,5 +67,5 @@ app.get("/", (req, res) => {
 });
 
 app.listen(port, () => {
-    console.log(`✅ Servidor backend escuchando en http://localhost:${port}`);
+    console.log(`✅ Servidor backend escuchando en el puerto ${port}`);
 });
